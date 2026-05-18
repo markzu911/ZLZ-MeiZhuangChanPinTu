@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { Buffer } from "node:buffer";
 
 const SAAS_ORIGIN = process.env.SAAS_ORIGIN || 'https://aibigtree.com';
 
@@ -145,7 +146,7 @@ export default async function handler(req: Request) {
   // Handle Gemini related tasks
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return new Response(JSON.stringify({ error: 'GEMINI_API_KEY is not configured' }), {
+    return new Response(JSON.stringify({ error: 'GEMINI_API_KEY is not configured in Vercel' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
     });
@@ -161,12 +162,13 @@ export default async function handler(req: Request) {
   // Handle Analyze
   if (path === '/api/analyze') {
     try {
-      const { image } = await req.json();
-      if (!image) return new Response('Image required', { status: 400 });
+      const body = await req.json();
+      const image = body.image;
+      if (!image) return new Response(JSON.stringify({ error: 'Image required' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
 
       const imageData = image.includes(',') ? image.split(',')[1] : image;
       const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-flash-latest",
         contents: {
           parts: [
             { text: "Analyze this beauty e-commerce reference image. 1. Identify the 'Main Product Subject' that should be replaced. 2. List all other 'Environment Elements' (background, props, lighting, model). Format the output as JSON: { \"mainSubject\": \"string\", \"environment\": [\"string\", \"string\"] }" },
@@ -189,7 +191,11 @@ export default async function handler(req: Request) {
         headers: { 'Content-Type': 'application/json' }
       });
     } catch (error: any) {
-      return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+      console.error("Analyze Proxy Error:", error);
+      return new Response(JSON.stringify({ error: error.message || "Analysis failed" }), { 
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
   }
 
@@ -263,12 +269,16 @@ export default async function handler(req: Request) {
         headers: { 'Content-Type': 'application/json' }
       });
     } catch (error: any) {
-      return new Response(JSON.stringify({ error: error.message }), {
+      console.error("Generate Proxy Error:", error);
+      return new Response(JSON.stringify({ error: error.message || "Generation failed" }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' }
       });
     }
   }
 
-  return new Response('Not Found', { status: 404 });
+  return new Response(JSON.stringify({ error: 'Not Found' }), { 
+    status: 404,
+    headers: { 'Content-Type': 'application/json' }
+  });
 }

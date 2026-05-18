@@ -148,7 +148,8 @@ async function startServer() {
     try {
       const imageData = image.includes(',') ? image.split(',')[1] : image;
       const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        // Using gemini-flash-latest for robust multimodal analysis
+        model: "gemini-flash-latest",
         contents: {
           parts: [
             { text: "Analyze this beauty e-commerce reference image. 1. Identify the 'Main Product Subject' that should be replaced. 2. List all other 'Environment Elements' (background, props, lighting, model). Format the output as JSON: { \"mainSubject\": \"string\", \"environment\": [\"string\", \"string\"] }" },
@@ -172,7 +173,8 @@ async function startServer() {
         res.json({ mainSubject: "product", environment: ["beauty setting"] });
       }
     } catch (error: any) {
-      res.status(500).json({ error: "Analysis failed" });
+      console.error("Analysis Error:", error);
+      res.status(500).json({ error: error.message || "Analysis failed" });
     }
   });
 
@@ -242,16 +244,13 @@ async function startServer() {
           return res.json({ imageUrl: saasImage.url, recordId: saasImage.recordId, saasInfo: saasImage });
         } catch (saasError: any) {
           console.error("SaaS Save Error:", saasError.message);
-          // Fallback to returning base64 if save fails but generation was successful? 
-          // Spec says "commit 失败：前端不要提示保存成功".
-          // I'll return the base64 but with an error flag so frontend knows.
           return res.json({ imageUrl: base64Url, saasError: saasError.message });
         }
       }
 
       res.json({ imageUrl: base64Url });
     } catch (error: any) {
-      console.error("Generation Error:", error.message);
+      console.error("Generation Error:", error);
       res.status(500).json({ error: error.message || "Generation failed" });
     }
   });
