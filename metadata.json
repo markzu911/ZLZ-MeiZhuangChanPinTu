@@ -1,0 +1,6 @@
+{
+  "name": "BeautyGen AI",
+  "description": "AI-powered beauty e-commerce image generator for one-click high-quality product photos.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
