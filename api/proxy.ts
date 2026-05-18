@@ -1,10 +1,4 @@
-import express from "express";
-import path from "path";
-import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
-import dotenv from "dotenv";
-
-dotenv.config();
 
 const SAAS_ORIGIN = process.env.SAAS_ORIGIN || 'https://aibigtree.com';
 
@@ -75,7 +69,7 @@ async function saveResultImageToSaas({
     method: token.method || 'PUT',
     headers: {
       ...token.headers,
-      'Content-Type': mimeType // Ensure content type matches token
+      'Content-Type': mimeType
     },
     body: imageBuffer
   });
@@ -104,48 +98,72 @@ async function saveResultImageToSaas({
   return commit.image || commit;
 }
 
-async function startServer() {
-  const app = express();
-  const PORT = 3000;
+export default async function handler(req: Request) {
+  const url = new URL(req.url);
+  const path = url.pathname;
 
-  app.use(express.json({ limit: '50mb' }));
-
-  const ai = new GoogleGenAI({
-    apiKey: process.env.GEMINI_API_KEY!,
-    httpOptions: {
+  // Handle CORS OPTIONS
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
       headers: {
-        'User-Agent': 'aistudio-build',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
       }
-    }
-  });
+    });
+  }
 
-  // API Routes
-  app.get("/api/health", (req, res) => {
-    res.json({ status: "ok" });
-  });
+  // Health check
+  if (path === '/api/health') {
+    return new Response(JSON.stringify({ status: 'ok' }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
 
-  // SaaS Proxy & Info Routes
-  app.post("/api/tool/launch", async (req, res) => {
+  // Forward SaaS tool routes
+  if (path.startsWith('/api/tool/')) {
     try {
-      const { userId, toolId } = req.body;
-      const saasRes = await fetch(`${SAAS_ORIGIN}/api/tool/launch`, {
+      const body = await req.json();
+      const saasRes = await fetch(`${SAAS_ORIGIN}${path}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, toolId })
+        body: JSON.stringify(body)
       });
       const data = await readJsonResponse(saasRes);
-      res.json(data);
+      return new Response(JSON.stringify(data), {
+        headers: { 'Content-Type': 'application/json' }
+      });
     } catch (error: any) {
-      res.status(500).json({ success: false, message: error.message });
+      return new Response(JSON.stringify({ success: false, message: error.message }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+  }
+
+  // Handle Gemini related tasks
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return new Response(JSON.stringify({ error: 'GEMINI_API_KEY is not configured' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  const ai = new GoogleGenAI({
+    apiKey,
+    httpOptions: {
+      headers: { 'User-Agent': 'aistudio-build' }
     }
   });
 
-  // Logic 1: Analyze Reference Image
-  app.post("/api/analyze", async (req, res) => {
-    const { image } = req.body; 
-    if (!image) return res.status(400).json({ error: "Image required" });
-
+  // Handle Analyze
+  if (path === '/api/analyze') {
     try {
+      const { image } = await req.json();
+      if (!image) return new Response('Image required', { status: 400 });
+
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: [
@@ -162,56 +180,48 @@ async function startServer() {
       const jsonStart = resultText.indexOf('{');
       const jsonEnd = resultText.lastIndexOf('}') + 1;
       
-      if (jsonStart === -1 || jsonEnd <= jsonStart) {
-        return res.json({ mainSubject: "product", environment: ["beauty setting"] });
+      let result = { mainSubject: "product", environment: ["beauty setting"] };
+      if (jsonStart !== -1 && jsonEnd > jsonStart) {
+        try {
+          result = JSON.parse(resultText.substring(jsonStart, jsonEnd));
+        } catch (e) {}
       }
-
-      try {
-        const result = JSON.parse(resultText.substring(jsonStart, jsonEnd));
-        res.json(result);
-      } catch (parseError) {
-        res.json({ mainSubject: "product", environment: ["beauty setting"] });
-      }
+      return new Response(JSON.stringify(result), {
+        headers: { 'Content-Type': 'application/json' }
+      });
     } catch (error: any) {
-      res.status(500).json({ error: "Analysis failed" });
+      return new Response(JSON.stringify({ error: error.message }), { status: 500 });
     }
-  });
+  }
 
-  // Logic 1 & 2: Generate Image
-  app.post(["/api/generate", "/api/gemini"], async (req, res) => {
-    const { prompt, config, productImage, referenceImage, userId, toolId } = req.body;
-
+  // Handle Generate / Gemini
+  if (path === '/api/generate' || path === '/api/gemini') {
     try {
-      // Step 1: Optional SaaS Verification
+      const { prompt, config, productImage, referenceImage, userId, toolId } = await req.json();
+
       if (userId && toolId) {
         await verifyBeforeGenerate({ userId, toolId });
       }
 
-      // Step 2: AI Generation
       const contentsParts: any[] = [{ text: prompt }];
-      
       if (referenceImage) {
-        contentsParts.push({
-          inlineData: { data: referenceImage.split(',')[1], mimeType: "image/jpeg" }
-        });
+        contentsParts.push({ inlineData: { data: referenceImage.split(',')[1], mimeType: "image/jpeg" } });
       }
-      
       if (productImage) {
-        contentsParts.push({
-          inlineData: { data: productImage.split(',')[1], mimeType: "image/jpeg" }
-        });
+        contentsParts.push({ inlineData: { data: productImage.split(',')[1], mimeType: "image/jpeg" } });
       }
 
       const response = await ai.models.generateContent({
         model: "gemini-3.1-flash-image-preview",
         contents: { parts: contentsParts },
         config: {
+          // @ts-ignore
           imageConfig: config,
         },
       });
 
       let imageData = "";
-      if (response.candidates && response.candidates[0].content.parts) {
+      if (response.candidates?.[0]?.content?.parts) {
         for (const part of response.candidates[0].content.parts) {
           if (part.inlineData) {
             imageData = part.inlineData.data;
@@ -221,13 +231,14 @@ async function startServer() {
       }
 
       if (!imageData) {
-        return res.json({ text: response.text });
+        return new Response(JSON.stringify({ text: response.text }), {
+          headers: { 'Content-Type': 'application/json' }
+        });
       }
 
       const imageBuffer = Buffer.from(imageData, 'base64');
       const base64Url = `data:image/png;base64,${imageData}`;
 
-      // Step 3: SaaS Save flow if IDs provided
       if (userId && toolId) {
         try {
           const saasImage = await saveResultImageToSaas({
@@ -237,41 +248,26 @@ async function startServer() {
             mimeType: 'image/png',
             fileName: `beauty-gen-${Date.now()}.png`
           });
-          return res.json({ imageUrl: saasImage.url, recordId: saasImage.recordId, saasInfo: saasImage });
+          return new Response(JSON.stringify({ imageUrl: saasImage.url, recordId: saasImage.recordId, saasInfo: saasImage }), {
+            headers: { 'Content-Type': 'application/json' }
+          });
         } catch (saasError: any) {
-          console.error("SaaS Save Error:", saasError.message);
-          // Fallback to returning base64 if save fails but generation was successful? 
-          // Spec says "commit 失败：前端不要提示保存成功".
-          // I'll return the base64 but with an error flag so frontend knows.
-          return res.json({ imageUrl: base64Url, saasError: saasError.message });
+          return new Response(JSON.stringify({ imageUrl: base64Url, saasError: saasError.message }), {
+            headers: { 'Content-Type': 'application/json' }
+          });
         }
       }
 
-      res.json({ imageUrl: base64Url });
+      return new Response(JSON.stringify({ imageUrl: base64Url }), {
+        headers: { 'Content-Type': 'application/json' }
+      });
     } catch (error: any) {
-      console.error("Generation Error:", error.message);
-      res.status(500).json({ error: error.message || "Generation failed" });
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
-  });
-
-  // Vite middleware for development
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on port ${PORT}`);
-  });
+  return new Response('Not Found', { status: 404 });
 }
-
-startServer();

@@ -198,7 +198,7 @@ export default function App() {
 
       for (let i = 0; i < count; i++) {
         try {
-          const res = await fetch('/api/generate', {
+          const res = await fetch('/api/gemini', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
