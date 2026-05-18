@@ -164,16 +164,15 @@ export default async function handler(req: Request) {
       const { image } = await req.json();
       if (!image) return new Response('Image required', { status: 400 });
 
+      const imageData = image.includes(',') ? image.split(',')[1] : image;
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
-        contents: [
-          {
-            parts: [
-              { text: "Analyze this beauty e-commerce reference image. 1. Identify the 'Main Product Subject' that should be replaced. 2. List all other 'Environment Elements' (background, props, lighting, model). Format the output as JSON: { \"mainSubject\": \"string\", \"environment\": [\"string\", \"string\"] }" },
-              { inlineData: { data: image.split(',')[1], mimeType: "image/jpeg" } }
-            ]
-          }
-        ],
+        contents: {
+          parts: [
+            { text: "Analyze this beauty e-commerce reference image. 1. Identify the 'Main Product Subject' that should be replaced. 2. List all other 'Environment Elements' (background, props, lighting, model). Format the output as JSON: { \"mainSubject\": \"string\", \"environment\": [\"string\", \"string\"] }" },
+            { inlineData: { data: imageData, mimeType: "image/jpeg" } }
+          ]
+        },
       });
       
       const resultText = response.text || "{}";
@@ -205,10 +204,12 @@ export default async function handler(req: Request) {
 
       const contentsParts: any[] = [{ text: prompt }];
       if (referenceImage) {
-        contentsParts.push({ inlineData: { data: referenceImage.split(',')[1], mimeType: "image/jpeg" } });
+        const refData = referenceImage.includes(',') ? referenceImage.split(',')[1] : referenceImage;
+        contentsParts.push({ inlineData: { data: refData, mimeType: "image/jpeg" } });
       }
       if (productImage) {
-        contentsParts.push({ inlineData: { data: productImage.split(',')[1], mimeType: "image/jpeg" } });
+        const prodData = productImage.includes(',') ? productImage.split(',')[1] : productImage;
+        contentsParts.push({ inlineData: { data: prodData, mimeType: "image/jpeg" } });
       }
 
       const response = await ai.models.generateContent({

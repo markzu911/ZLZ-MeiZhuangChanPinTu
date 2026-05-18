@@ -146,16 +146,15 @@ async function startServer() {
     if (!image) return res.status(400).json({ error: "Image required" });
 
     try {
+      const imageData = image.includes(',') ? image.split(',')[1] : image;
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
-        contents: [
-          {
-            parts: [
-              { text: "Analyze this beauty e-commerce reference image. 1. Identify the 'Main Product Subject' that should be replaced. 2. List all other 'Environment Elements' (background, props, lighting, model). Format the output as JSON: { \"mainSubject\": \"string\", \"environment\": [\"string\", \"string\"] }" },
-              { inlineData: { data: image.split(',')[1], mimeType: "image/jpeg" } }
-            ]
-          }
-        ],
+        contents: {
+          parts: [
+            { text: "Analyze this beauty e-commerce reference image. 1. Identify the 'Main Product Subject' that should be replaced. 2. List all other 'Environment Elements' (background, props, lighting, model). Format the output as JSON: { \"mainSubject\": \"string\", \"environment\": [\"string\", \"string\"] }" },
+            { inlineData: { data: imageData, mimeType: "image/jpeg" } }
+          ]
+        },
       });
       
       const resultText = response.text || "{}";
@@ -191,14 +190,16 @@ async function startServer() {
       const contentsParts: any[] = [{ text: prompt }];
       
       if (referenceImage) {
+        const refData = referenceImage.includes(',') ? referenceImage.split(',')[1] : referenceImage;
         contentsParts.push({
-          inlineData: { data: referenceImage.split(',')[1], mimeType: "image/jpeg" }
+          inlineData: { data: refData, mimeType: "image/jpeg" }
         });
       }
       
       if (productImage) {
+        const prodData = productImage.includes(',') ? productImage.split(',')[1] : productImage;
         contentsParts.push({
-          inlineData: { data: productImage.split(',')[1], mimeType: "image/jpeg" }
+          inlineData: { data: prodData, mimeType: "image/jpeg" }
         });
       }
 
@@ -206,6 +207,7 @@ async function startServer() {
         model: "gemini-3.1-flash-image-preview",
         contents: { parts: contentsParts },
         config: {
+          // @ts-ignore
           imageConfig: config,
         },
       });
