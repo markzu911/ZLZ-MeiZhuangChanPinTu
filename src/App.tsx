@@ -133,8 +133,14 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, toolId })
       });
-      const result = await res.json();
-      if (result.success) {
+      const text = await res.text();
+      let result;
+      try {
+        result = JSON.parse(text);
+      } catch {
+        throw new Error(text || 'Launch API returned non-JSON response');
+      }
+      if (res.ok && result.success) {
         setUserData(result.data.user);
         setToolData(result.data.tool);
       }
@@ -227,7 +233,14 @@ export default function App() {
             continue;
           }
 
-          const data = await res.json();
+          const text = await res.text();
+          let data;
+          try {
+            data = JSON.parse(text);
+          } catch {
+            console.error(`Non-JSON response for image ${i + 1}:`, text);
+            continue;
+          }
           if (data.imageUrl) {
             newItems.push({
               id: (Date.now() + i).toString(),
