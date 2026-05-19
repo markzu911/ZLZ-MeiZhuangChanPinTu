@@ -202,7 +202,8 @@ export default function App() {
         throw new Error(text || 'Analyze API returned non-JSON response');
       }
       if (!res.ok) {
-        throw new Error(data.error || data.message || 'Analyze failed');
+        const detailMessage = data.detail || data.error || data.message || text;
+        throw new Error(detailMessage || 'Analyze failed');
       }
       if (data.mainSubject) setMainSubject(data.mainSubject);
       if (data.environment) setObjects(data.environment);

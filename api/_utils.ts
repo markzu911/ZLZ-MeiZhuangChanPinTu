@@ -1,13 +1,15 @@
-export const SAAS_ORIGIN = process.env.SAAS_ORIGIN || 'http://aibigtree.com';
+export const SAAS_ORIGIN = 'http://aibigtree.com';
+console.log('SAAS_ORIGIN_IN_USE:', SAAS_ORIGIN);
 
 export async function saasFetch(url: string, options: RequestInit) {
+  console.log('SaaS Request URL:', url);
   try {
     return await fetch(url, options);
   } catch (error: any) {
     console.error("SaaS Fetch Network Error:", error);
     if (error.message?.includes('ERR_TLS_CERT_ALTNAME_INVALID') || error.code === 'ERR_TLS_CERT_ALTNAME_INVALID') {
       const tlsError = new Error('SaaS HTTPS certificate mismatch');
-      (tlsError as any).detail = 'aibigtree.com 的 HTTPS 证书未包含 aibigtree.com，请修复 SaaS 平台证书配置';
+      (tlsError as any).detail = 'aibigtree.com 的 HTTPS 证书未包含 aibigtree.com，请修复 SaaS 平台证书配置。注意：当前代码已尝试切换到 http://aibigtree.com，如果仍报 TLS 错误，请检查是否有其它地方在请求 https。';
       throw tlsError;
     }
     throw error;

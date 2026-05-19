@@ -5,7 +5,18 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const SAAS_ORIGIN = process.env.SAAS_ORIGIN || 'https://aibigtree.com';
+const SAAS_ORIGIN = 'http://aibigtree.com';
+console.log('SAAS_ORIGIN_IN_USE:', SAAS_ORIGIN);
+
+async function saasFetch(url: string, options: RequestInit) {
+  console.log('SaaS Request URL:', url);
+  try {
+    return await fetch(url, options);
+  } catch (error: any) {
+    console.error("SaaS Fetch Network Error:", error);
+    throw error;
+  }
+}
 
 async function readJsonResponse(res: Response) {
   const text = await res.text();
@@ -25,7 +36,7 @@ async function readJsonResponse(res: Response) {
 
 async function verifyBeforeGenerate({ userId, toolId }: { userId: string, toolId: string }) {
   if (!userId || !toolId) return null;
-  const res = await fetch(`${SAAS_ORIGIN}/api/tool/verify`, {
+  const res = await saasFetch(`${SAAS_ORIGIN}/api/tool/verify`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ userId, toolId })
@@ -47,7 +58,7 @@ async function saveResultImageToSaas({
   fileName?: string;
 }) {
   // Step 1: Consume points
-  const consumeRes = await fetch(`${SAAS_ORIGIN}/api/tool/consume`, {
+  const consumeRes = await saasFetch(`${SAAS_ORIGIN}/api/tool/consume`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ userId, toolId })
@@ -55,7 +66,7 @@ async function saveResultImageToSaas({
   await readJsonResponse(consumeRes);
 
   // Step 2: Get OSS upload token
-  const tokenRes = await fetch(`${SAAS_ORIGIN}/api/upload/direct-token`, {
+  const tokenRes = await saasFetch(`${SAAS_ORIGIN}/api/upload/direct-token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -84,7 +95,7 @@ async function saveResultImageToSaas({
   }
 
   // Step 4: Commit record to SaaS
-  const commitRes = await fetch(`${SAAS_ORIGIN}/api/upload/commit`, {
+  const commitRes = await saasFetch(`${SAAS_ORIGIN}/api/upload/commit`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -118,7 +129,7 @@ async function startServer() {
   app.post("/api/tool/launch", async (req, res) => {
     try {
       const { userId, toolId } = req.body;
-      const saasRes = await fetch(`${SAAS_ORIGIN}/api/tool/launch`, {
+      const saasRes = await saasFetch(`${SAAS_ORIGIN}/api/tool/launch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, toolId })
