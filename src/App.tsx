@@ -232,7 +232,7 @@ export default function App() {
         3. Lighting & Atmosphere: The generated image MUST strictly match the lighting direction, highlights, shadow depth, color temperature, and atmospheric mood of the REFERENCE SCENE. The TARGET PRODUCT must appear as if it was captured in the exact same lighting setup as the original scene, inheriting all environmental reflections, highlights, and cast shadows.
         4. Seamless Integration: Ensure the contact points between the product and environment (or hands) look realistic with natural contact shadows and physically accurate depth.
         5. Consistency: Maintain the exact aesthetic, background, color palette, and other objects from the REFERENCE SCENE: ${objects.join(', ')}.
-        6. Quality: High-end commercial cosmetic photography, 8k resolution, professional studio retouching.`;
+        6. Quality: High-end commercial cosmetic photography, professional studio retouching.`;
       } else {
         const style = beautyStyles.find(s => s.name === selectedStyle);
         prompt = style?.prompt || selectedStyle;
