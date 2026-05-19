@@ -207,32 +207,43 @@ async function startServer() {
 
       const response = await ai.models.generateContent({
         model: "gemini-3.1-flash-image-preview",
-        contents: { parts: contentsParts },
+        contents: contentsParts,
         config: {
-          // @ts-ignore
-          responseModalities: ['Image'],
+          responseModalities: ["TEXT", "IMAGE"],
           // @ts-ignore
           responseFormat: {
             image: {
-              aspectRatio: config?.aspectRatio,
-              imageSize: config?.imageSize
+              aspectRatio: config?.aspectRatio || "1:1",
+              imageSize: config?.imageSize || "1K"
             }
           }
         },
       });
 
       let imageData = "";
-      if (response.candidates && response.candidates[0].content.parts) {
-        for (const part of response.candidates[0].content.parts) {
-          if (part.inlineData) {
-            imageData = part.inlineData.data;
-            break;
-          }
+      const parts = response.candidates?.[0]?.content?.parts || [];
+
+      for (const part of parts) {
+        if ((part as any).thought) {
+          continue;
+        }
+
+        if (part.inlineData?.data) {
+          imageData = part.inlineData.data;
+          break;
         }
       }
 
       if (!imageData) {
-        return res.json({ text: response.text });
+        const text = parts
+          .map((part: any) => part.text)
+          .filter(Boolean)
+          .join("\n");
+
+        return res.status(502).json({ 
+          error: "Gemini did not return an image",
+          detail: text || "No image data returned from model"
+        });
       }
 
       const imageBuffer = Buffer.from(imageData, 'base64');
@@ -250,8 +261,11 @@ async function startServer() {
           });
           return res.json({ imageUrl: saasImage.url, recordId: saasImage.recordId, saasInfo: saasImage });
         } catch (saasError: any) {
-          console.error("SaaS Save Error:", saasError.message);
-          return res.json({ imageUrl: base64Url, saasError: saasError.message });
+          console.error("SaaS Save Error:", saasError);
+          return res.status(502).json({ 
+            error: "Image generated but failed to save to SaaS storage", 
+            detail: saasError?.message || String(saasError)
+          });
         }
       }
 

@@ -35,32 +35,47 @@ export async function POST(req: Request) {
 
     const response = await ai.models.generateContent({
       model: "gemini-3.1-flash-image-preview",
-      contents: { parts: contentsParts },
+      contents: contentsParts,
       config: {
-        // @ts-ignore
-        responseModalities: ['Image'],
+        responseModalities: ["TEXT", "IMAGE"],
         // @ts-ignore
         responseFormat: {
           image: {
-            aspectRatio: genConfig?.aspectRatio,
-            imageSize: genConfig?.imageSize
+            aspectRatio: genConfig?.aspectRatio || "1:1",
+            imageSize: genConfig?.imageSize || "1K"
           }
         }
       },
     });
 
     let imageData = "";
-    if (response.candidates?.[0]?.content?.parts) {
-      for (const part of response.candidates[0].content.parts) {
-        if (part.inlineData) {
-          imageData = part.inlineData.data;
-          break;
-        }
+    const parts = response.candidates?.[0]?.content?.parts || [];
+
+    for (const part of parts) {
+      // Skip thinking/thought parts if present
+      if ((part as any).thought) {
+        continue;
+      }
+
+      if (part.inlineData?.data) {
+        imageData = part.inlineData.data;
+        break;
       }
     }
 
     if (!imageData) {
-      return Response.json({ text: response.text }, { headers: corsHeaders() });
+      const text = parts
+        .map((part: any) => part.text)
+        .filter(Boolean)
+        .join("\n");
+
+      return Response.json({ 
+        error: "Gemini did not return an image",
+        detail: text || "No image data returned from model"
+      }, { 
+        status: 502,
+        headers: corsHeaders() 
+      });
     }
 
     const binaryData = Buffer.from(imageData, 'base64');
@@ -81,10 +96,14 @@ export async function POST(req: Request) {
           saasInfo: saasImage 
         }, { headers: corsHeaders() });
       } catch (saasError: any) {
+        console.error("SaaS Save Error:", saasError);
         return Response.json({ 
-          imageUrl: base64Url, 
-          saasError: saasError.message 
-        }, { headers: corsHeaders() });
+          error: "Image generated but failed to save to SaaS storage", 
+          detail: saasError?.message || String(saasError)
+        }, { 
+          status: 502,
+          headers: corsHeaders() 
+        });
       }
     }
 

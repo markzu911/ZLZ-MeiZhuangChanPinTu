@@ -248,8 +248,8 @@ export default function App() {
       const newItems: HistoryItem[] = [];
 
       // Pre-compress images once
-      const compressedProd = productImage ? await compressImage(productImage, 1280, 1280, 0.8) : undefined;
-      const compressedRef = (mode === 'analysis' && refImage) ? await compressImage(refImage, 1280, 1280, 0.8) : undefined;
+      const compressedProd = productImage ? await compressImage(productImage, 1024, 1024, 0.72) : undefined;
+      const compressedRef = (mode === 'analysis' && refImage) ? await compressImage(refImage, 1024, 1024, 0.72) : undefined;
 
       for (let i = 0; i < count; i++) {
         try {
@@ -268,7 +268,19 @@ export default function App() {
 
           if (!res.ok) {
             const errorText = await res.text();
-            console.error(`Generation failed for image ${i + 1}:`, errorText);
+            let errorMessage = errorText;
+
+            try {
+              const errorJson = JSON.parse(errorText);
+              errorMessage =
+                errorJson.detail ||
+                errorJson.error ||
+                errorJson.message ||
+                errorText;
+            } catch {}
+
+            console.error(`Generation failed for image ${i + 1}:`, errorMessage);
+            alert(errorMessage);
             continue;
           }
 
