@@ -254,12 +254,15 @@ export default function App() {
 
       for (let i = 0; i < count; i++) {
         try {
+          // Adjust imageSize for backend - 4k is too heavy for current limits, use 2K
+          const requestedImageSize = resolution === '4k' ? '2K' : resolution.toUpperCase();
+
           const res = await fetch('/api/gemini', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
               prompt: prompt + (count > 1 ? ` Variation ${i + 1}-${Math.random().toString(36).substring(7)}` : ''), 
-              config: { aspectRatio: ratio, imageSize: resolution.toUpperCase() },
+              config: { aspectRatio: ratio, imageSize: requestedImageSize },
               productImage: compressedProd,
               referenceImage: compressedRef,
               userId: saasConfig?.userId,
@@ -271,16 +274,21 @@ export default function App() {
             const errorText = await res.text();
             let errorMessage = errorText;
 
-            try {
-              const errorJson = JSON.parse(errorText);
-              errorMessage =
-                errorJson.detail ||
-                errorJson.error ||
-                errorJson.message ||
-                errorText;
-            } catch {}
+            // Handle 504 Gateway Timeout specifically
+            if (res.status === 504 || errorText.toLowerCase().includes('gateway time-out')) {
+               errorMessage = "生成超时，请切换 1K/2K 或稍后重试。";
+            } else {
+              try {
+                const errorJson = JSON.parse(errorText);
+                errorMessage =
+                  errorJson.detail ||
+                  errorJson.error ||
+                  errorJson.message ||
+                  errorText;
+              } catch {}
+            }
 
-            console.error(`Generation failed for image ${i + 1}:`, errorMessage);
+            console.error(`Generation failed for image ${i + 1}:`, errorText);
             alert(errorMessage);
             continue;
           }
@@ -294,13 +302,19 @@ export default function App() {
             continue;
           }
           if (data.imageUrl) {
-            newItems.push({
+            const newItem = {
               id: (Date.now() + i).toString(),
               url: data.imageUrl,
               timestamp: Date.now(),
               mode,
               prompt: prompt.substring(0, 100) + '...'
-            });
+            };
+            newItems.push(newItem);
+            
+            // Asynchronously save to SaaS if configured
+            if (saasConfig?.userId && saasConfig?.toolId) {
+              saveToSaaS(data.imageUrl, saasConfig.userId, saasConfig.toolId);
+            }
           }
         } catch (err) {
           console.error(`Error generating image ${i + 1}:`, err);
@@ -314,6 +328,22 @@ export default function App() {
       console.error(err);
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const saveToSaaS = async (imageUrl: string, userId: string, toolId: string) => {
+    try {
+      const res = await fetch('/api/save-result', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrl, userId, toolId })
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        console.warn('Asynchronous SaaS save failed:', text);
+      }
+    } catch (err) {
+      console.warn('Asynchronous SaaS save error:', err);
     }
   };
 

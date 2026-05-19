@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { corsHeaders, verifyBeforeGenerate, saveResultImageToSaas } from "./_utils.js";
 
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const headers = corsHeaders();
@@ -48,13 +48,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const modelName = "gemini-3.1-flash-image-preview";
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
+    // Capping imageSize to 2K for stability and avoiding 504
+    let requestedSize = genConfig?.imageSize || "1K";
+    if (requestedSize === "4K") {
+      requestedSize = "2K";
+    }
+
     const payload = {
       contents: [{ parts: contentsParts }],
       generationConfig: {
         responseModalities: ["TEXT", "IMAGE"],
         imageConfig: {
           aspectRatio: genConfig?.aspectRatio || "1:1",
-          imageSize: genConfig?.imageSize || "1K"
+          imageSize: requestedSize
         }
       }
     };
@@ -98,24 +104,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         error: "Gemini did not return an image",
         detail: text || "No image data returned from model REST API"
       });
-    }
-
-    const binaryData = Buffer.from(imageData, "base64");
-
-    if (userId && toolId) {
-      try {
-        const saasImage = await saveResultImageToSaas({
-          userId, toolId, imageBuffer: binaryData,
-          mimeType: "image/png", fileName: `beauty-gen-${Date.now()}.png`
-        });
-        return res.status(200).json({ imageUrl: saasImage.url, recordId: saasImage.recordId, saasInfo: saasImage });
-      } catch (saasError: any) {
-        console.error("SaaS Save Error:", saasError);
-        return res.status(502).json({
-          error: "Image generated but failed to save to SaaS storage",
-          detail: saasError?.message || String(saasError)
-        });
-      }
     }
 
     return res.status(200).json({ imageUrl: `data:image/png;base64,${imageData}` });

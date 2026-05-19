@@ -226,13 +226,19 @@ async function startServer() {
       const modelName = "gemini-3.1-flash-image-preview";
       const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
+      // Capping imageSize to 2K for stability
+      let requestedSize = config?.imageSize || "1K";
+      if (requestedSize === "4K") {
+        requestedSize = "2K";
+      }
+
       const payload = {
         contents: [{ parts: contentsParts }],
         generationConfig: {
           responseModalities: ["TEXT", "IMAGE"],
           imageConfig: {
             aspectRatio: config?.aspectRatio || "1:1",
-            imageSize: config?.imageSize || "1K"
+            imageSize: requestedSize
           }
         }
       };
@@ -268,33 +274,44 @@ async function startServer() {
         });
       }
 
-      const imageBuffer = Buffer.from(imageData, 'base64');
       const base64Url = `data:image/png;base64,${imageData}`;
-
-      // Step 3: SaaS Save flow if IDs provided
-      if (userId && toolId) {
-        try {
-          const saasImage = await saveResultImageToSaas({
-            userId,
-            toolId,
-            imageBuffer,
-            mimeType: 'image/png',
-            fileName: `beauty-gen-${Date.now()}.png`
-          });
-          return res.json({ imageUrl: saasImage.url, recordId: saasImage.recordId, saasInfo: saasImage });
-        } catch (saasError: any) {
-          console.error("SaaS Save Error:", saasError);
-          return res.status(502).json({ 
-            error: "Image generated but failed to save to SaaS storage", 
-            detail: saasError?.message || String(saasError)
-          });
-        }
-      }
-
       res.json({ imageUrl: base64Url });
     } catch (error: any) {
       console.error("Generation Error:", error);
       res.status(500).json({ error: error.message || "Generation failed" });
+    }
+  });
+
+  // SaaS Save Route
+  app.post("/api/save-result", async (req, res) => {
+    try {
+      const { imageUrl, userId, toolId } = req.body;
+      if (!imageUrl || !userId || !toolId) {
+        return res.status(400).json({ error: "Missing required parameters" });
+      }
+
+      let imageBuffer: Buffer;
+      if (imageUrl.startsWith('data:')) {
+        const base64Data = imageUrl.split(',')[1];
+        imageBuffer = Buffer.from(base64Data, 'base64');
+      } else {
+        const response = await fetch(imageUrl);
+        const arrayBuffer = await response.arrayBuffer();
+        imageBuffer = Buffer.from(arrayBuffer);
+      }
+
+      const saasImage = await saveResultImageToSaas({
+        userId,
+        toolId,
+        imageBuffer,
+        mimeType: 'image/png',
+        fileName: `beauty-gen-${Date.now()}.png`
+      });
+
+      res.json({ success: true, imageUrl: saasImage.url, recordId: saasImage.recordId });
+    } catch (error: any) {
+      console.error("SaaS Save Error:", error);
+      res.status(500).json({ success: false, message: error.message });
     }
   });
 
