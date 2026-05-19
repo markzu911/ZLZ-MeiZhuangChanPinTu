@@ -1,4 +1,4 @@
-export const SAAS_ORIGIN = process.env.SAAS_ORIGIN || 'https://aibigtree.com';
+export const SAAS_ORIGIN = process.env.SAAS_ORIGIN || 'http://aibigtree.com';
 
 export async function saasFetch(url: string, options: RequestInit) {
   try {
