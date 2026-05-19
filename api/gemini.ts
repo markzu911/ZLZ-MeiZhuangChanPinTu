@@ -52,11 +52,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       contents: [{ parts: contentsParts }],
       generationConfig: {
         responseModalities: ["TEXT", "IMAGE"],
-        responseFormat: {
-          image: {
-            aspectRatio: genConfig?.aspectRatio || "1:1",
-            imageSize: genConfig?.imageSize || "1K"
-          }
+        imageConfig: {
+          aspectRatio: genConfig?.aspectRatio || "1:1",
+          imageSize: genConfig?.imageSize || "1K"
         }
       }
     };

@@ -151,7 +151,7 @@ async function startServer() {
       if (!apiKey) return res.status(500).json({ error: "GEMINI_API_KEY missing" });
 
       const imageData = image.includes(',') ? image.split(',')[1] : image;
-      const modelName = "gemini-flash-latest";
+      const modelName = "gemini-3.1-flash-image-preview";
       const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
       const payload = {
@@ -230,11 +230,9 @@ async function startServer() {
         contents: [{ parts: contentsParts }],
         generationConfig: {
           responseModalities: ["TEXT", "IMAGE"],
-          responseFormat: {
-            image: {
-              aspectRatio: config?.aspectRatio || "1:1",
-              imageSize: config?.imageSize || "1K"
-            }
+          imageConfig: {
+            aspectRatio: config?.aspectRatio || "1:1",
+            imageSize: config?.imageSize || "1K"
           }
         }
       };

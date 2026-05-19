@@ -31,7 +31,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const imageData = image.includes(',') ? image.split(',')[1] : image;
     
     // Use REST API for analyze
-    const modelName = "gemini-1.5-flash-latest";
+    const modelName = "gemini-3.1-flash-image-preview";
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
     const payload = {
