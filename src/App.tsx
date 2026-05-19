@@ -29,6 +29,40 @@ interface HistoryItem {
   prompt: string;
 }
 
+// --- Utils ---
+const compressImage = async (base64: string, maxWidth = 1024, maxHeight = 1024, quality = 0.8): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.src = base64;
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+
+      if (width > height) {
+        if (width > maxWidth) {
+          height *= maxWidth / width;
+          width = maxWidth;
+        }
+      } else {
+        if (height > maxHeight) {
+          width *= maxHeight / height;
+          height = maxHeight;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return reject(new Error('Failed to get canvas context'));
+
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = (err) => reject(err);
+  });
+};
+
 // --- Components ---
 
 const ImageUploader = ({ 
@@ -154,10 +188,11 @@ export default function App() {
     if (!refImage) return;
     setAnalyzing(true);
     try {
+      const compressedRef = await compressImage(refImage, 1024, 1024, 0.8);
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: refImage })
+        body: JSON.stringify({ image: compressedRef })
       });
       const text = await res.text();
       let data;
@@ -209,8 +244,12 @@ export default function App() {
       }
 
       // Determine number of images to generate
-      const count = mode === 'analysis' ? 1 : 3;
+      const count = mode === 'analysis' ? 1 : 1; // Temporarily 1 for both for stability
       const newItems: HistoryItem[] = [];
+
+      // Pre-compress images once
+      const compressedProd = productImage ? await compressImage(productImage, 1280, 1280, 0.8) : undefined;
+      const compressedRef = (mode === 'analysis' && refImage) ? await compressImage(refImage, 1280, 1280, 0.8) : undefined;
 
       for (let i = 0; i < count; i++) {
         try {
@@ -220,8 +259,8 @@ export default function App() {
             body: JSON.stringify({ 
               prompt: prompt + (count > 1 ? ` Variation ${i + 1}-${Math.random().toString(36).substring(7)}` : ''), 
               config: { aspectRatio: ratio, imageSize: resolution.toUpperCase() },
-              productImage: productImage || undefined,
-              referenceImage: mode === 'analysis' ? refImage : undefined,
+              productImage: compressedProd,
+              referenceImage: compressedRef,
               userId: saasConfig?.userId,
               toolId: saasConfig?.toolId
             })
@@ -512,7 +551,7 @@ export default function App() {
                 className="group mt-4 flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-neutral-800 to-neutral-950 py-5 text-lg font-bold text-white shadow-xl transition-all hover:scale-[1.02] active:scale-95 disabled:scale-100 disabled:opacity-50 dark:from-neutral-200 dark:to-white dark:text-neutral-950"
               >
                 {generating ? <Loader2 className="animate-spin" /> : <Sparkles />}
-                {generating ? (mode === 'analysis' ? 'Generating Replacement...' : 'Crafting Your Series...') : (mode === 'analysis' ? 'Generate Ecommerce Image' : 'Generate Beauty Series (3 Images)')}
+                {generating ? (mode === 'analysis' ? 'Generating Replacement...' : 'Crafting Your Image...') : (mode === 'analysis' ? 'Generate Ecommerce Image' : 'Generate Beauty Shot (1 Image)')}
               </button>
             </section>
           </div>

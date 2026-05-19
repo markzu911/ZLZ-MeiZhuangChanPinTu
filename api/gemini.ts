@@ -1,12 +1,11 @@
 import { getGemini, corsHeaders, verifyBeforeGenerate, saveResultImageToSaas } from "./_utils";
 
 export const config = {
-  // We use standard runtime here due to Buffer usage in some logic if needed, 
-  // but Edge also works if we use Uint8Array. 
-  // Image generation might take time, so we'll stick to 'edge' if it supports the timeouts we need, 
-  // or default to Node. Let's try Node for more reliability with binary data.
+  // Use Node.js runtime for Buffer support and longer timeouts if needed
   // runtime: 'edge', 
 };
+
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
   try {
@@ -39,7 +38,14 @@ export async function POST(req: Request) {
       contents: { parts: contentsParts },
       config: {
         // @ts-ignore
-        imageConfig: genConfig,
+        responseModalities: ['Image'],
+        // @ts-ignore
+        responseFormat: {
+          image: {
+            aspectRatio: genConfig?.aspectRatio,
+            imageSize: genConfig?.imageSize
+          }
+        }
       },
     });
 
@@ -57,7 +63,7 @@ export async function POST(req: Request) {
       return Response.json({ text: response.text }, { headers: corsHeaders() });
     }
 
-    const binaryData = Uint8Array.from(atob(imageData), c => c.charCodeAt(0));
+    const binaryData = Buffer.from(imageData, 'base64');
     const base64Url = `data:image/png;base64,${imageData}`;
 
     if (userId && toolId) {
