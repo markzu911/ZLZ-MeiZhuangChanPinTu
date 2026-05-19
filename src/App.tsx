@@ -153,11 +153,21 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image: refImage })
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error(text || 'Analyze API returned non-JSON response');
+      }
+      if (!res.ok) {
+        throw new Error(data.error || data.message || 'Analyze failed');
+      }
       if (data.mainSubject) setMainSubject(data.mainSubject);
       if (data.environment) setObjects(data.environment);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      alert(err.message || "Analysis failed");
     } finally {
       setAnalyzing(false);
     }
