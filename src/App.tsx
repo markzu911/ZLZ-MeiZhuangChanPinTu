@@ -188,7 +188,7 @@ export default function App() {
     if (!refImage) return;
     setAnalyzing(true);
     try {
-      const compressedRef = await compressImage(refImage, 1024, 1024, 0.72);
+      const compressedRef = await compressImage(refImage, 768, 768, 0.68);
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -248,8 +248,8 @@ export default function App() {
       const newItems: HistoryItem[] = [];
 
       // Pre-compress images once
-      const compressedProd = productImage ? await compressImage(productImage, 1024, 1024, 0.72) : undefined;
-      const compressedRef = (mode === 'analysis' && refImage) ? await compressImage(refImage, 1024, 1024, 0.72) : undefined;
+      const compressedProd = productImage ? await compressImage(productImage, 768, 768, 0.68) : undefined;
+      const compressedRef = (mode === 'analysis' && refImage) ? await compressImage(refImage, 768, 768, 0.68) : undefined;
 
       for (let i = 0; i < count; i++) {
         try {

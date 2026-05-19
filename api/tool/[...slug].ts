@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { SAAS_ORIGIN, readJsonResponse, corsHeaders } from "../_utils.js";
+import { SAAS_ORIGIN, saasFetch, readJsonResponse, corsHeaders } from "../_utils.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const headers = corsHeaders();
@@ -16,7 +16,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const body = req.body || {};
-    const saasRes = await fetch(`${SAAS_ORIGIN}${path}`, {
+    const saasRes = await saasFetch(`${SAAS_ORIGIN}${path}`, {
       method: req.method,
       headers: { 'Content-Type': 'application/json' },
       body: req.method === 'GET' ? undefined : JSON.stringify(body)
@@ -37,6 +37,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(200).json(data);
   } catch (error: any) {
+    if (error.message === 'SaaS HTTPS certificate mismatch') {
+      return res.status(502).json({
+        error: error.message,
+        detail: error.detail
+      });
+    }
     return res.status(500).json({ success: false, message: error.message });
   }
 }

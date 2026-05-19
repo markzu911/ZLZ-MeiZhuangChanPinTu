@@ -1,7 +1,6 @@
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
-import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -110,15 +109,6 @@ async function startServer() {
 
   app.use(express.json({ limit: '50mb' }));
 
-  const ai = new GoogleGenAI({
-    apiKey: process.env.GEMINI_API_KEY!,
-    httpOptions: {
-      headers: {
-        'User-Agent': 'aistudio-build',
-      }
-    }
-  });
-
   // API Routes
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
@@ -146,19 +136,37 @@ async function startServer() {
     if (!image) return res.status(400).json({ error: "Image required" });
 
     try {
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) return res.status(500).json({ error: "GEMINI_API_KEY missing" });
+
       const imageData = image.includes(',') ? image.split(',')[1] : image;
-      const response = await ai.models.generateContent({
-        // Using gemini-flash-latest for robust multimodal analysis
-        model: "gemini-flash-latest",
-        contents: {
-          parts: [
-            { text: "Analyze this beauty e-commerce reference image. 1. Identify the 'Main Product Subject' that should be replaced. 2. List all other 'Environment Elements' (background, props, lighting, model). Format the output as JSON: { \"mainSubject\": \"string\", \"environment\": [\"string\", \"string\"] }" },
-            { inlineData: { data: imageData, mimeType: "image/jpeg" } }
-          ]
-        },
+      const modelName = "gemini-flash-latest";
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+
+      const payload = {
+        contents: [
+          {
+            parts: [
+              { text: "Analyze this beauty e-commerce reference image. 1. Identify the 'Main Product Subject' that should be replaced. 2. List all other 'Environment Elements' (background, props, lighting, model). Format the output as JSON: { \"mainSubject\": \"string\", \"environment\": [\"string\", \"string\"] }" },
+              { inlineData: { data: imageData, mimeType: "image/jpeg" } }
+            ]
+          }
+        ]
+      };
+
+      const geminiRes = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
       });
-      
-      const resultText = response.text || "{}";
+
+      if (!geminiRes.ok) {
+        const errText = await geminiRes.text();
+        return res.status(geminiRes.status).json({ error: "Analysis failed", detail: errText });
+      }
+
+      const responseData = await geminiRes.json() as any;
+      const resultText = responseData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
       const jsonStart = resultText.indexOf('{');
       const jsonEnd = resultText.lastIndexOf('}') + 1;
       
@@ -183,6 +191,9 @@ async function startServer() {
     const { prompt, config, productImage, referenceImage, userId, toolId } = req.body;
 
     try {
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) return res.status(500).json({ error: "GEMINI_API_KEY missing" });
+
       // Step 1: Optional SaaS Verification
       if (userId && toolId) {
         await verifyBeforeGenerate({ userId, toolId });
@@ -193,41 +204,47 @@ async function startServer() {
       
       if (referenceImage) {
         const refData = referenceImage.includes(',') ? referenceImage.split(',')[1] : referenceImage;
-        contentsParts.push({
-          inlineData: { data: refData, mimeType: "image/jpeg" }
-        });
+        contentsParts.push({ inlineData: { data: refData, mimeType: "image/jpeg" } });
       }
       
       if (productImage) {
         const prodData = productImage.includes(',') ? productImage.split(',')[1] : productImage;
-        contentsParts.push({
-          inlineData: { data: prodData, mimeType: "image/jpeg" }
-        });
+        contentsParts.push({ inlineData: { data: prodData, mimeType: "image/jpeg" } });
       }
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3.1-flash-image-preview",
-        contents: contentsParts,
-        config: {
+      const modelName = "gemini-3.1-flash-image-preview";
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+
+      const payload = {
+        contents: [{ parts: contentsParts }],
+        generationConfig: {
           responseModalities: ["TEXT", "IMAGE"],
-          // @ts-ignore
           responseFormat: {
             image: {
               aspectRatio: config?.aspectRatio || "1:1",
               imageSize: config?.imageSize || "1K"
             }
           }
-        },
+        }
+      };
+
+      const geminiRes = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
       });
 
+      if (!geminiRes.ok) {
+        const errText = await geminiRes.text();
+        return res.status(geminiRes.status).json({ error: "Generation failed", detail: errText });
+      }
+
+      const responseData = await geminiRes.json() as any;
+      const parts = responseData.candidates?.[0]?.content?.parts || [];
       let imageData = "";
-      const parts = response.candidates?.[0]?.content?.parts || [];
 
       for (const part of parts) {
-        if ((part as any).thought) {
-          continue;
-        }
-
+        if (part.thought) continue;
         if (part.inlineData?.data) {
           imageData = part.inlineData.data;
           break;
@@ -235,14 +252,10 @@ async function startServer() {
       }
 
       if (!imageData) {
-        const text = parts
-          .map((part: any) => part.text)
-          .filter(Boolean)
-          .join("\n");
-
+        const text = parts.map((p: any) => p.text).filter(Boolean).join("\n");
         return res.status(502).json({ 
           error: "Gemini did not return an image",
-          detail: text || "No image data returned from model"
+          detail: text || "No image data returned"
         });
       }
 

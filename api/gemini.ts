@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getGemini, corsHeaders, verifyBeforeGenerate, saveResultImageToSaas } from "./_utils.js";
+import { corsHeaders, verifyBeforeGenerate, saveResultImageToSaas } from "./_utils.js";
 
 export const maxDuration = 60;
 
@@ -40,8 +40,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: "Prompt is required" });
     }
 
-    const ai = getGemini(apiKey);
-
     if (userId && toolId) {
       await verifyBeforeGenerate({ userId, toolId });
     }
@@ -74,12 +72,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash-image-preview",
-      contents: contentsParts,
-      config: {
+    // Use REST API directly for better stability in Vercel Node environment
+    const modelName = "gemini-3.1-flash-image-preview";
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+
+    const payload = {
+      contents: [{ parts: contentsParts }],
+      generationConfig: {
         responseModalities: ["TEXT", "IMAGE"],
-        // @ts-ignore
         responseFormat: {
           image: {
             aspectRatio: genConfig?.aspectRatio || "1:1",
@@ -87,12 +87,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           }
         }
       }
+    };
+
+    const geminiRes = await fetch(apiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
     });
 
-    let imageData = "";
-    const parts = response.candidates?.[0]?.content?.parts || [];
+    if (!geminiRes.ok) {
+      const errText = await geminiRes.text();
+      let detail = errText;
+      try {
+        const errJson = JSON.parse(errText);
+        detail = errJson.error?.message || errJson.message || errText;
+      } catch (e) {}
+      
+      return res.status(geminiRes.status).json({
+        error: "Gemini REST API failed",
+        detail: detail,
+        status: geminiRes.status
+      });
+    }
 
-    for (const part of parts as any[]) {
+    const responseData = await geminiRes.json();
+    const parts = responseData.candidates?.[0]?.content?.parts || [];
+    let imageData = "";
+
+    for (const part of parts) {
       if (part.thought) continue;
 
       if (part.inlineData?.data) {
@@ -102,14 +124,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (!imageData) {
-      const text = (parts as any[])
-        .map((part) => part.text)
+      const text = parts
+        .map((part: any) => part.text)
         .filter(Boolean)
         .join("\n");
 
       return res.status(502).json({
         error: "Gemini did not return an image",
-        detail: text || "No image data returned from model"
+        detail: text || "No image data returned from model REST API"
       });
     }
 
@@ -144,12 +166,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       imageUrl: `data:image/png;base64,${imageData}`
     });
   } catch (error: any) {
-    console.error("Gemini API Error:", {
-      name: error?.name,
-      message: error?.message,
-      stack: error?.stack,
-      cause: error?.cause
-    });
+    console.error("Gemini API Error:", error);
 
     return res.status(500).json({
       error: "Generation failed",

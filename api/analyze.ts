@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getGemini, corsHeaders } from "./_utils.js";
+import { corsHeaders } from "./_utils.js";
 
 export const maxDuration = 60;
 
@@ -30,20 +30,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Image required' });
     }
 
-    const ai = getGemini(apiKey);
     const imageData = image.includes(',') ? image.split(',')[1] : image;
     
-    const response = await ai.models.generateContent({
-      model: "gemini-flash-latest",
-      contents: {
-        parts: [
-          { text: "Analyze this beauty e-commerce reference image. 1. Identify the 'Main Product Subject' that should be replaced. 2. List all other 'Environment Elements' (background, props, lighting, model). Format the output as JSON: { \"mainSubject\": \"string\", \"environment\": [\"string\", \"string\"] }" },
-          { inlineData: { data: imageData, mimeType: "image/jpeg" } }
-        ]
-      },
+    // Use REST API for analyze as well
+    const modelName = "gemini-1.5-flash-latest";
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+
+    const payload = {
+      contents: [
+        {
+          parts: [
+            { text: "Analyze this beauty e-commerce reference image. 1. Identify the 'Main Product Subject' that should be replaced. 2. List all other 'Environment Elements' (background, props, lighting, model). Format the output as JSON: { \"mainSubject\": \"string\", \"environment\": [\"string\", \"string\"] }" },
+            { inlineData: { data: imageData, mimeType: "image/jpeg" } }
+          ]
+        }
+      ]
+    };
+
+    const geminiRes = await fetch(apiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
     });
-    
-    const resultText = response.text || "{}";
+
+    if (!geminiRes.ok) {
+      const errText = await geminiRes.text();
+      return res.status(geminiRes.status).json({
+        error: "Analysis failed via REST API",
+        detail: errText,
+        status: geminiRes.status
+      });
+    }
+
+    const responseData = await geminiRes.json();
+    const resultText = responseData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
     const jsonStart = resultText.indexOf('{');
     const jsonEnd = resultText.lastIndexOf('}') + 1;
     

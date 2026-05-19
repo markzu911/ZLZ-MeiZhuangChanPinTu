@@ -1,6 +1,18 @@
-import { GoogleGenAI } from "@google/genai";
-
 export const SAAS_ORIGIN = process.env.SAAS_ORIGIN || 'https://aibigtree.com';
+
+export async function saasFetch(url: string, options: RequestInit) {
+  try {
+    return await fetch(url, options);
+  } catch (error: any) {
+    console.error("SaaS Fetch Network Error:", error);
+    if (error.message?.includes('ERR_TLS_CERT_ALTNAME_INVALID') || error.code === 'ERR_TLS_CERT_ALTNAME_INVALID') {
+      const tlsError = new Error('SaaS HTTPS certificate mismatch');
+      (tlsError as any).detail = 'aibigtree.com 的 HTTPS 证书未包含 aibigtree.com，请修复 SaaS 平台证书配置';
+      throw tlsError;
+    }
+    throw error;
+  }
+}
 
 export async function readJsonResponse(res: Response) {
   const text = await res.text();
@@ -20,7 +32,7 @@ export async function readJsonResponse(res: Response) {
 
 export async function verifyBeforeGenerate({ userId, toolId }: { userId: string, toolId: string }) {
   if (!userId || !toolId) return null;
-  const res = await fetch(`${SAAS_ORIGIN}/api/tool/verify`, {
+  const res = await saasFetch(`${SAAS_ORIGIN}/api/tool/verify`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ userId, toolId })
@@ -42,7 +54,7 @@ export async function saveResultImageToSaas({
   fileName?: string;
 }) {
   // Step 1: Consume points
-  const consumeRes = await fetch(`${SAAS_ORIGIN}/api/tool/consume`, {
+  const consumeRes = await saasFetch(`${SAAS_ORIGIN}/api/tool/consume`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ userId, toolId })
@@ -50,7 +62,7 @@ export async function saveResultImageToSaas({
   await readJsonResponse(consumeRes);
 
   // Step 2: Get OSS upload token
-  const tokenRes = await fetch(`${SAAS_ORIGIN}/api/upload/direct-token`, {
+  const tokenRes = await saasFetch(`${SAAS_ORIGIN}/api/upload/direct-token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -79,7 +91,7 @@ export async function saveResultImageToSaas({
   }
 
   // Step 4: Commit record to SaaS
-  const commitRes = await fetch(`${SAAS_ORIGIN}/api/upload/commit`, {
+  const commitRes = await saasFetch(`${SAAS_ORIGIN}/api/upload/commit`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -96,15 +108,6 @@ export async function saveResultImageToSaas({
   }
 
   return commit.image || commit;
-}
-
-export function getGemini(apiKey: string) {
-  return new GoogleGenAI({
-    apiKey,
-    httpOptions: {
-      headers: { 'User-Agent': 'aistudio-build' }
-    }
-  });
 }
 
 export function corsHeaders() {
