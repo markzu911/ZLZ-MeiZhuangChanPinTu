@@ -210,7 +210,14 @@ async function startServer() {
         contents: { parts: contentsParts },
         config: {
           // @ts-ignore
-          imageConfig: config,
+          responseModalities: ['Image'],
+          // @ts-ignore
+          responseFormat: {
+            image: {
+              aspectRatio: config?.aspectRatio,
+              imageSize: config?.imageSize
+            }
+          }
         },
       });
 
