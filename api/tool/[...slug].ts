@@ -1,30 +1,42 @@
-import { SAAS_ORIGIN, readJsonResponse, corsHeaders } from "../_utils";
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { SAAS_ORIGIN, readJsonResponse, corsHeaders } from "../_utils.js";
 
-export const config = {
-  runtime: 'edge',
-};
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  const headers = corsHeaders();
 
-export async function POST(req: Request) {
-  const url = new URL(req.url);
-  const path = url.pathname;
+  for (const [key, value] of Object.entries(headers)) {
+    res.setHeader(key, value);
+  }
+
+  if (req.method === "OPTIONS") {
+    return res.status(204).end();
+  }
+
+  const path = req.url?.split('?')[0] || '';
 
   try {
-    const body = await req.json();
+    const body = req.body || {};
     const saasRes = await fetch(`${SAAS_ORIGIN}${path}`, {
-      method: 'POST',
+      method: req.method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
+      body: req.method === 'GET' ? undefined : JSON.stringify(body)
     });
-    const data = await readJsonResponse(saasRes);
-    return Response.json(data, { headers: corsHeaders() });
-  } catch (error: any) {
-    return Response.json({ success: false, message: error.message }, {
-      status: 500,
-      headers: corsHeaders()
-    });
-  }
-}
+    
+    // We need to use readJsonResponse logic but it might throw
+    const text = await saasRes.text();
+    let data: any = {};
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch {
+      data = { error: text.slice(0, 300) };
+    }
 
-export async function OPTIONS() {
-  return new Response(null, { status: 204, headers: corsHeaders() });
+    if (!saasRes.ok || data.success === false) {
+      return res.status(saasRes.status).json(data);
+    }
+
+    return res.status(200).json(data);
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
 }

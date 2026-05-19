@@ -1,21 +1,44 @@
-import { getGemini, corsHeaders, verifyBeforeGenerate, saveResultImageToSaas } from "./_utils";
-
-export const config = {
-  // Use Node.js runtime for Buffer support and longer timeouts if needed
-  // runtime: 'edge', 
-};
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { getGemini, corsHeaders, verifyBeforeGenerate, saveResultImageToSaas } from "./_utils.js";
 
 export const maxDuration = 60;
 
-export async function POST(req: Request) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  const headers = corsHeaders();
+
+  for (const [key, value] of Object.entries(headers)) {
+    res.setHeader(key, value);
+  }
+
+  if (req.method === "OPTIONS") {
+    return res.status(204).end();
+  }
+
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
   try {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return Response.json({ error: 'GEMINI_API_KEY is not configured in Vercel' }, { status: 500 });
+      return res.status(500).json({
+        error: "GEMINI_API_KEY is not configured in Vercel"
+      });
     }
 
-    const body = await req.json();
-    const { prompt, config: genConfig, productImage, referenceImage, userId, toolId } = body;
+    const body = req.body || {};
+    const {
+      prompt,
+      config: genConfig,
+      productImage,
+      referenceImage,
+      userId,
+      toolId
+    } = body;
+
+    if (!prompt) {
+      return res.status(400).json({ error: "Prompt is required" });
+    }
 
     const ai = getGemini(apiKey);
 
@@ -24,13 +47,31 @@ export async function POST(req: Request) {
     }
 
     const contentsParts: any[] = [{ text: prompt }];
+
     if (referenceImage) {
-      const refData = referenceImage.includes(',') ? referenceImage.split(',')[1] : referenceImage;
-      contentsParts.push({ inlineData: { data: refData, mimeType: "image/jpeg" } });
+      const refData = referenceImage.includes(",")
+        ? referenceImage.split(",")[1]
+        : referenceImage;
+
+      contentsParts.push({
+        inlineData: {
+          data: refData,
+          mimeType: "image/jpeg"
+        }
+      });
     }
+
     if (productImage) {
-      const prodData = productImage.includes(',') ? productImage.split(',')[1] : productImage;
-      contentsParts.push({ inlineData: { data: prodData, mimeType: "image/jpeg" } });
+      const prodData = productImage.includes(",")
+        ? productImage.split(",")[1]
+        : productImage;
+
+      contentsParts.push({
+        inlineData: {
+          data: prodData,
+          mimeType: "image/jpeg"
+        }
+      });
     }
 
     const response = await ai.models.generateContent({
@@ -45,17 +86,14 @@ export async function POST(req: Request) {
             imageSize: genConfig?.imageSize || "1K"
           }
         }
-      },
+      }
     });
 
     let imageData = "";
     const parts = response.candidates?.[0]?.content?.parts || [];
 
-    for (const part of parts) {
-      // Skip thinking/thought parts if present
-      if ((part as any).thought) {
-        continue;
-      }
+    for (const part of parts as any[]) {
+      if (part.thought) continue;
 
       if (part.inlineData?.data) {
         imageData = part.inlineData.data;
@@ -64,22 +102,18 @@ export async function POST(req: Request) {
     }
 
     if (!imageData) {
-      const text = parts
-        .map((part: any) => part.text)
+      const text = (parts as any[])
+        .map((part) => part.text)
         .filter(Boolean)
         .join("\n");
 
-      return Response.json({ 
+      return res.status(502).json({
         error: "Gemini did not return an image",
         detail: text || "No image data returned from model"
-      }, { 
-        status: 502,
-        headers: corsHeaders() 
       });
     }
 
-    const binaryData = Buffer.from(imageData, 'base64');
-    const base64Url = `data:image/png;base64,${imageData}`;
+    const binaryData = Buffer.from(imageData, "base64");
 
     if (userId && toolId) {
       try {
@@ -87,36 +121,39 @@ export async function POST(req: Request) {
           userId,
           toolId,
           imageBuffer: binaryData,
-          mimeType: 'image/png',
+          mimeType: "image/png",
           fileName: `beauty-gen-${Date.now()}.png`
         });
-        return Response.json({ 
-          imageUrl: saasImage.url, 
-          recordId: saasImage.recordId, 
-          saasInfo: saasImage 
-        }, { headers: corsHeaders() });
+
+        return res.status(200).json({
+          imageUrl: saasImage.url,
+          recordId: saasImage.recordId,
+          saasInfo: saasImage
+        });
       } catch (saasError: any) {
         console.error("SaaS Save Error:", saasError);
-        return Response.json({ 
-          error: "Image generated but failed to save to SaaS storage", 
+
+        return res.status(502).json({
+          error: "Image generated but failed to save to SaaS storage",
           detail: saasError?.message || String(saasError)
-        }, { 
-          status: 502,
-          headers: corsHeaders() 
         });
       }
     }
 
-    return Response.json({ imageUrl: base64Url }, { headers: corsHeaders() });
+    return res.status(200).json({
+      imageUrl: `data:image/png;base64,${imageData}`
+    });
   } catch (error: any) {
-    console.error("Gemini API Error:", error);
-    return Response.json({ error: error.message || "Generation failed" }, {
-      status: 500,
-      headers: corsHeaders()
+    console.error("Gemini API Error:", {
+      name: error?.name,
+      message: error?.message,
+      stack: error?.stack,
+      cause: error?.cause
+    });
+
+    return res.status(500).json({
+      error: "Generation failed",
+      detail: error?.message || String(error)
     });
   }
-}
-
-export async function OPTIONS() {
-  return new Response(null, { status: 204, headers: corsHeaders() });
 }

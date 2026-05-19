@@ -188,7 +188,7 @@ export default function App() {
     if (!refImage) return;
     setAnalyzing(true);
     try {
-      const compressedRef = await compressImage(refImage, 1024, 1024, 0.8);
+      const compressedRef = await compressImage(refImage, 1024, 1024, 0.72);
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

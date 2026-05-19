@@ -1,20 +1,33 @@
-import { getGemini, corsHeaders } from "./_utils";
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { getGemini, corsHeaders } from "./_utils.js";
 
-export const config = {
-  runtime: 'edge',
-};
+export const maxDuration = 60;
 
-export async function POST(req: Request) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  const headers = corsHeaders();
+
+  for (const [key, value] of Object.entries(headers)) {
+    res.setHeader(key, value);
+  }
+
+  if (req.method === "OPTIONS") {
+    return res.status(204).end();
+  }
+
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
   try {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return Response.json({ error: 'GEMINI_API_KEY is not configured in Vercel' }, { status: 500 });
+      return res.status(500).json({ error: 'GEMINI_API_KEY is not configured in Vercel' });
     }
 
-    const body = await req.json();
+    const body = req.body || {};
     const image = body.image;
     if (!image) {
-      return Response.json({ error: 'Image required' }, { status: 400 });
+      return res.status(400).json({ error: 'Image required' });
     }
 
     const ai = getGemini(apiKey);
@@ -41,16 +54,9 @@ export async function POST(req: Request) {
       } catch (e) {}
     }
 
-    return Response.json(result, { headers: corsHeaders() });
+    return res.status(200).json(result);
   } catch (error: any) {
     console.error("Analyze API Error:", error);
-    return Response.json({ error: error.message || "Analysis failed" }, { 
-      status: 500,
-      headers: corsHeaders()
-    });
+    return res.status(500).json({ error: error.message || "Analysis failed" });
   }
-}
-
-export async function OPTIONS() {
-  return new Response(null, { status: 204, headers: corsHeaders() });
 }
