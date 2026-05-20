@@ -12,7 +12,9 @@ import {
   Plus,
   X,
   Loader2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  PanelLeftClose,
+  PanelLeftOpen
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -104,6 +106,7 @@ const ImageUploader = ({
 };
 
 export default function App() {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [mode, setMode] = useState<GenerationMode>('analysis');
   const [resolution, setResolution] = useState<Resolution>('1k');
   const [ratio, setRatio] = useState<AspectRatio>('1:1');
@@ -361,96 +364,45 @@ export default function App() {
   return (
     <div className="flex h-screen w-full overflow-hidden bg-white text-neutral-900 dark:bg-black dark:text-neutral-100">
       {/* Sidebar */}
-      <aside className="flex w-80 flex-col overflow-y-auto border-r border-neutral-100 bg-neutral-50 p-6 dark:border-neutral-900 dark:bg-black/50">
-        <div className="mb-10 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-900">
-            <Sparkles size={20} />
-          </div>
-          <h1 className="text-xl font-bold tracking-tight">BeautyGen AI</h1>
+      <aside className={`flex flex-col overflow-y-auto border-r border-neutral-100 bg-neutral-50 p-6 transition-all duration-300 dark:border-neutral-900 dark:bg-black/50 ${isSidebarOpen ? 'w-80' : 'w-24 px-4 items-center'}`}>
+        <div className={`mb-10 flex items-center justify-between w-full ${!isSidebarOpen && 'justify-center'}`}>
+          {isSidebarOpen && (
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-900">
+                <Sparkles size={20} />
+              </div>
+              <h1 className="text-xl font-bold tracking-tight whitespace-nowrap">BeautyGen AI</h1>
+            </div>
+          )}
+          <button 
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-neutral-500 hover:bg-neutral-200 dark:text-neutral-400 dark:hover:bg-neutral-800 transition-colors"
+          >
+            {isSidebarOpen ? <PanelLeftClose size={20} /> : <PanelLeftOpen size={20} />}
+          </button>
         </div>
 
-        <nav className="flex flex-col gap-2">
-          <span className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400">导航菜单</span>
+        <nav className="flex w-full flex-col gap-2">
+          {isSidebarOpen && <span className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400">导航菜单</span>}
           <button 
             onClick={() => setMode('analysis')}
-            className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${mode === 'analysis' ? 'bg-white shadow-sm ring-1 ring-neutral-200 dark:bg-neutral-900 dark:ring-neutral-800' : 'text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800'}`}
+            title="构图分析与产品替换"
+            className={`flex items-center rounded-xl py-3 transition-all ${isSidebarOpen ? 'gap-3 px-4 justify-start' : 'justify-center w-12 h-12 mx-auto'} ${mode === 'analysis' ? 'bg-white shadow-sm ring-1 ring-neutral-200 dark:bg-neutral-900 dark:ring-neutral-800' : 'text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800'}`}
           >
-            <Camera size={18} />
-            构图分析与产品替换
+            <Camera size={18} className="shrink-0" />
+            {isSidebarOpen && <span className="text-sm font-medium whitespace-nowrap">构图分析与产品替换</span>}
           </button>
           <button 
             onClick={() => setMode('style')}
-            className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${mode === 'style' ? 'bg-white shadow-sm ring-1 ring-neutral-200 dark:bg-neutral-900 dark:ring-neutral-800' : 'text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800'}`}
+            title="风格直接融合生成"
+            className={`flex items-center rounded-xl py-3 transition-all ${isSidebarOpen ? 'gap-3 px-4 justify-start' : 'justify-center w-12 h-12 mx-auto'} ${mode === 'style' ? 'bg-white shadow-sm ring-1 ring-neutral-200 dark:bg-neutral-900 dark:ring-neutral-800' : 'text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800'}`}
           >
-            <Layout size={18} />
-            风格直接融合生成
+            <Layout size={18} className="shrink-0" />
+            {isSidebarOpen && <span className="text-sm font-medium whitespace-nowrap">风格直接融合生成</span>}
           </button>
         </nav>
 
-        <div className="mt-10 flex flex-col gap-6">
-          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400">配置中心</span>
-          
-          <div className="flex flex-col gap-3">
-            <label className="flex items-center gap-2 text-xs font-semibold text-neutral-600 dark:text-neutral-400">
-              <Settings size={14} />
-              画面分辨率
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {(['1k', '2k', '4k'] as Resolution[]).map(r => (
-                <button
-                  key={r}
-                  onClick={() => setResolution(r)}
-                  className={`rounded-lg py-2 text-xs font-bold uppercase ${resolution === r ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900' : 'bg-neutral-200 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'}`}
-                >
-                  {r}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-3">
-            <label className="flex items-center gap-2 text-xs font-semibold text-neutral-600 dark:text-neutral-400">
-              <Maximize2 size={14} />
-              画面比例
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {(['1:1', '3:4', '4:3', '16:9'] as AspectRatio[]).map(r => (
-                <button
-                  key={r}
-                  onClick={() => setRatio(r)}
-                  className={`rounded-lg py-2 text-xs font-bold ${ratio === r ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900' : 'bg-neutral-200 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'}`}
-                >
-                  {r}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-3 overflow-hidden">
-            <label className="flex items-center gap-2 text-xs font-semibold text-neutral-600 dark:text-neutral-400">
-              <HistoryIcon size={14} />
-              生成历史
-            </label>
-            <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto pr-1 scrollbar-hide">
-              {history.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => setSelectedImage(item.url)}
-                  className="relative aspect-square overflow-hidden rounded-lg bg-neutral-200 transition-transform active:scale-95 dark:bg-neutral-800"
-                >
-                  <img src={item.url} alt="History thumbnail" className="h-full w-full object-cover" />
-                </button>
-              ))}
-              {history.length === 0 && (
-                <div className="col-span-3 flex aspect-[3/1] items-center justify-center rounded-lg border border-dashed border-neutral-300 text-[10px] text-neutral-400 dark:border-neutral-700">
-                  暂无历史记录
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-auto pt-6 border-t border-neutral-200 dark:border-neutral-800">
+        <div className={`mt-auto pt-6 border-t border-neutral-200 dark:border-neutral-800 w-full ${isSidebarOpen ? '' : 'hidden'}`}>
           <div className="flex items-center gap-2 rounded-xl bg-neutral-900/5 p-3 dark:bg-white/5">
              <div className="h-8 w-8 rounded-full bg-neutral-200 flex items-center justify-center font-bold text-neutral-500 dark:bg-neutral-800">
                 {userData?.name?.[0] || 'U'}
@@ -503,7 +455,7 @@ export default function App() {
                         className="group flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 py-3 font-bold text-white transition-all hover:bg-neutral-800 disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-100"
                       >
                         {analyzing ? <Loader2 className="animate-spin" /> : <Sparkles size={18} />}
-                        {analyzing ? '分析中...' : '深度分析画面视觉元素'}
+                        {analyzing ? '分析中...' : '开始分析按钮'}
                       </button>
                     </div>
                   )}
@@ -585,17 +537,81 @@ export default function App() {
                       </div>
                     </div>
                   )}
+
+                  {/* Settings / Configuration moved here */}
+                  <div className="flex flex-col gap-6 rounded-2xl border border-neutral-100 bg-neutral-50 px-5 py-6 dark:border-neutral-800 dark:bg-neutral-900/50">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">配置中心 / 用户设置参数</span>
+                    <div className="flex flex-col gap-3">
+                      <label className="flex items-center gap-2 text-xs font-semibold text-neutral-600 dark:text-neutral-400">
+                        <Settings size={14} />
+                        画面分辨率
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {(['1k', '2k', '4k'] as Resolution[]).map(r => (
+                          <button
+                            key={r}
+                            onClick={() => setResolution(r)}
+                            className={`rounded-lg py-2 text-xs font-bold uppercase ${resolution === r ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900' : 'bg-neutral-200 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'}`}
+                          >
+                            {r}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-3">
+                      <label className="flex items-center gap-2 text-xs font-semibold text-neutral-600 dark:text-neutral-400">
+                        <Maximize2 size={14} />
+                        画面比例
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {(['1:1', '3:4', '4:3', '16:9'] as AspectRatio[]).map(r => (
+                          <button
+                            key={r}
+                            onClick={() => setRatio(r)}
+                            className={`rounded-lg py-2 text-xs font-bold ${ratio === r ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900' : 'bg-neutral-200 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400'}`}
+                          >
+                            {r}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleGenerate}
+                    disabled={generating || (mode === 'analysis' && (!refImage || !productImage))}
+                    className="group mt-auto flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-neutral-800 to-neutral-950 py-5 text-lg font-bold text-white shadow-xl transition-all hover:scale-[1.02] active:scale-95 disabled:scale-100 disabled:opacity-50 dark:from-neutral-200 dark:to-white dark:text-neutral-950"
+                  >
+                    {generating ? <Loader2 className="animate-spin" /> : <Sparkles />}
+                    {generating ? (mode === 'analysis' ? '正在智能生成...' : '正在绘制您的风格大片...') : (mode === 'analysis' ? '生成图像按钮' : '生成图像按钮')}
+                  </button>
                 </div>
               </div>
-
-              <button
-                onClick={handleGenerate}
-                disabled={generating || (mode === 'analysis' && (!refImage || !productImage))}
-                className="group mt-4 flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-neutral-800 to-neutral-950 py-5 text-lg font-bold text-white shadow-xl transition-all hover:scale-[1.02] active:scale-95 disabled:scale-100 disabled:opacity-50 dark:from-neutral-200 dark:to-white dark:text-neutral-950"
-              >
-                {generating ? <Loader2 className="animate-spin" /> : <Sparkles />}
-                {generating ? (mode === 'analysis' ? '正在智能生成替换后的大片...' : '正在融合绘制您的风格大片...') : (mode === 'analysis' ? '立即融合生成高奢电商大片' : '立即开始风格化写真生成 (单张)')}
-              </button>
+            </section>
+            
+            {/* History Section Moved Here */}
+            <section className="flex flex-col gap-6 w-full border-t border-neutral-200 pt-12 dark:border-neutral-800">
+              <h3 className="flex items-center gap-2 text-xl font-bold">
+                <HistoryIcon size={24} />
+                生成历史
+              </h3>
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                {history.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => setSelectedImage(item.url)}
+                    className="relative aspect-square overflow-hidden rounded-xl bg-neutral-200 transition-transform hover:scale-[1.02] active:scale-95 hover:ring-2 ring-neutral-900 dark:bg-neutral-800 dark:ring-white"
+                  >
+                    <img src={item.url} alt="History thumbnail" className="h-full w-full object-cover" />
+                  </button>
+                ))}
+                {history.length === 0 && (
+                  <div className="col-span-full flex aspect-[4/1] items-center justify-center rounded-2xl border-2 border-dashed border-neutral-200 text-sm text-neutral-400 dark:border-neutral-800">
+                    暂无历史记录
+                  </div>
+                )}
+              </div>
             </section>
           </div>
         </div>
