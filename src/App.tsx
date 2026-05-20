@@ -424,7 +424,7 @@ export default function App() {
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto bg-white dark:bg-neutral-950">
-        <div className="mx-auto max-w-5xl p-10">
+        <div className="mx-auto max-w-7xl px-12 py-10 lg:px-24">
           <div className="mb-12">
             <h2 className="text-3xl font-bold tracking-tight">
               {mode === 'analysis' ? '构图分析与产品无缝融合替换' : '美妆视觉风格快速生成'}
@@ -438,8 +438,8 @@ export default function App() {
 
           <div className="flex flex-col gap-12">
             {/* Control Panel */}
-            <section className="flex flex-col gap-8 max-w-3xl mx-auto w-full">
-              <div className="flex flex-col gap-6 lg:flex-row">
+            <section className="flex flex-col gap-8 mx-auto w-full max-w-5xl">
+              <div className="flex flex-col gap-12 lg:flex-row">
                 {/* Left Column: Input Images */}
                 <div className="flex flex-1 flex-col gap-6">
                   {mode === 'analysis' && (
