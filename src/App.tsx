@@ -230,10 +230,10 @@ export default function App() {
         GOAL: Replace the ${mainSubject} in the reference scene with the TARGET PRODUCT.
         
         CORE INSTRUCTIONS:
-        1. Natural Interaction: If there is a model, keep their identity and expression identical, but adjust the hand position or finger grip slightly to hold the TARGET PRODUCT naturally.
-        2. Product Fidelity: The TARGET PRODUCT must be rendered with extreme high fidelity, maintaining its original shape, labeling, text, and proportions exactly as shown in the product image. Avoid any distortion or 'hallucination' of the product's branding.
-        3. Lighting & Atmosphere: The generated image MUST strictly match the lighting direction, highlights, shadow depth, color temperature, and atmospheric mood of the REFERENCE SCENE. The TARGET PRODUCT must appear as if it was captured in the exact same lighting setup as the original scene, inheriting all environmental reflections, highlights, and cast shadows.
-        4. Seamless Integration: Ensure the contact points between the product and environment (or hands) look realistic with natural contact shadows and physically accurate depth.
+        1. Natural Interaction: If there is a model, keep their identity and expression identical, but adjust the hand position or finger grip slightly to hold the TARGET PRODUCT naturally. The fingers MUST interact with the product naturally and realistically, without looking pasted on.
+        2. Product Fidelity: The TARGET PRODUCT must be rendered with extreme high fidelity, maintaining its original shape, labeling, text, and proportions exactly as shown in the product image. Avoid any distortion.
+        3. Perfect Lighting & Atmosphere Fusion: The generated image MUST strictly match the lighting direction, highlights, shadow depth, color temperature, and atmospheric mood of the REFERENCE SCENE. The TARGET PRODUCT and the model's hand/face MUST have perfectly fused lighting. It must look like the product was truly photographed in that exact studio setup, inheriting all reflections, environmental spill light, and casting soft, accurate contact shadows.
+        4. Seamless Integration: Ensure the contact points between the product and environment (or hands) look extremely realistic with natural contact shadows and physically accurate depth.
         5. Consistency: Maintain the exact aesthetic, background, color palette, and other objects from the REFERENCE SCENE: ${objects.join(', ')}.
         6. Quality: High-end commercial cosmetic photography, professional studio retouching.`;
       } else {
@@ -243,7 +243,7 @@ export default function App() {
           prompt += ` Extra scene elements to include: ${styleObjects.join(', ')}.`;
         }
         if (productImage) {
-          prompt += " IMPORTANT: The generated image MUST feature the model naturally holding the product from the uploaded product image. Ensure the hand position, grip, and finger placement are realistic. The product MUST maintain absolute fidelity to its original design, labels, and shape. It must perfectly inherit the scene's lighting, highlights, and cast soft contact shadows on the model's skin and environment.";
+          prompt += " IMPORTANT: The generated image MUST feature the model naturally holding the product from the uploaded product image. Ensure the hand position, grip, and finger placement are incredibly realistic and anatomically correct. The product MUST maintain absolute fidelity to its original design. It must perfectly inherit the scene's lighting, highlights, and cast soft contact shadows on the model's skin and environment. The lighting on the product and the model must be perfectly fused.";
         }
       }
 
