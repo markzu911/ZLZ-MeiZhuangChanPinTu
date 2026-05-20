@@ -94,7 +94,7 @@ const ImageUploader = ({
         ) : (
           <div className="flex flex-col items-center gap-2 text-neutral-400">
             <ImageIcon size={32} />
-            <span className="text-sm">Click or drag to upload</span>
+            <span className="text-sm">点击或拖拽上传</span>
           </div>
         )}
         <input type="file" className="hidden" onChange={handleChange} accept="image/*" />
@@ -118,12 +118,12 @@ export default function App() {
   const [newObject, setNewObject] = useState('');
 
   // Logic 2 State
-  const [selectedStyle, setSelectedStyle] = useState('Cinematic Noir Glamour');
+  const [selectedStyle, setSelectedStyle] = useState('电影复古感 (Cinematic Noir)');
   const [styleObjects, setStyleObjects] = useState<string[]>([]);
   const [styleNewObject, setStyleNewObject] = useState('');
   const beautyStyles = [
-    { name: 'Cinematic Noir Glamour', prompt: "Professional high-fashion beauty photography series. Model: a stunning young woman (~20s) with dark hair and dynamic, messy wisps framing her face. Features: thick natural arched brows, captivating light green eyes with earth-toned makeup, and long, dramatically curled lashes. Full glossy lips in a coral-orange hue, and radiant warm beige-tan skin (hex #efc4a5) with ultra-refined dewy finish. Lighting: Intense cinematic chiaroscuro with dramatic horizontal slat shadows (blinds effect) and warm golden highlights casting across the face. Composition: Extreme close-up; model gracefully holding the product near her face with a confident, seductive gaze. High-end luxury commercial aesthetic." },
-    { name: 'Pure Luminous Glow', prompt: "Extreme close-up beauty portrait, head and shoulders tightly cropped (face 60-70% of frame). Model: Young woman with short, fluffy natural black curly hair. Features: Radiant warm beige-tan skin (hex #efc4a5) with honey-golden luminous glow, smooth hydrated 'glass skin' texture. Actions: Model naturally holds the cosmetic product near her cheek or chin, intimate interaction. Lighting: 85mm lens perspective, soft diffused front lighting, luminous wet-look skin, glossy lips. Background: Clean warm beige or cream gradient. Professional beauty editorial aesthetic, youthful and approachable mood." }
+    { name: '电影复古感 (Cinematic Noir)', prompt: "Professional high-fashion beauty photography series. Model: a stunning young woman (~20s) with dark hair and dynamic, messy wisps framing her face. Features: thick natural arched brows, captivating light green eyes with earth-toned makeup, and long, dramatically curled lashes. Full glossy lips in a coral-orange hue, and radiant warm beige-tan skin (hex #efc4a5) with ultra-refined dewy finish. Lighting: Intense cinematic chiaroscuro with dramatic horizontal slat shadows (blinds effect) and warm golden highlights casting across the face. Composition: Extreme close-up; model gracefully holding the product near her face with a confident, seductive gaze. High-end luxury commercial aesthetic." },
+    { name: '极简透亮水光感 (Pure Glow)', prompt: "Extreme close-up beauty portrait, head and shoulders tightly cropped (face 60-70% of frame). Model: Young woman with short, fluffy natural black curly hair. Features: Radiant warm beige-tan skin (hex #efc4a5) with honey-golden luminous glow, smooth hydrated 'glass skin' texture. Actions: Model naturally holds the cosmetic product near her cheek or chin, intimate interaction. Lighting: 85mm lens perspective, soft diffused front lighting, luminous wet-look skin, glossy lips. Background: Clean warm beige or cream gradient. Professional beauty editorial aesthetic, youthful and approachable mood." }
   ];
 
   const [generating, setGenerating] = useState(false);
@@ -209,7 +209,7 @@ export default function App() {
       if (data.environment) setObjects(data.environment);
     } catch (err: any) {
       console.error(err);
-      alert(err.message || "Analysis failed");
+      alert(err.message || "构图分析失败，请稍后重试");
     } finally {
       setAnalyzing(false);
     }
@@ -370,30 +370,30 @@ export default function App() {
         </div>
 
         <nav className="flex flex-col gap-2">
-          <span className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400">Navigation</span>
+          <span className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400">导航菜单</span>
           <button 
             onClick={() => setMode('analysis')}
             className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${mode === 'analysis' ? 'bg-white shadow-sm ring-1 ring-neutral-200 dark:bg-neutral-900 dark:ring-neutral-800' : 'text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800'}`}
           >
             <Camera size={18} />
-            Analysis & Replace
+            构图分析与产品替换
           </button>
           <button 
             onClick={() => setMode('style')}
             className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${mode === 'style' ? 'bg-white shadow-sm ring-1 ring-neutral-200 dark:bg-neutral-900 dark:ring-neutral-800' : 'text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800'}`}
           >
             <Layout size={18} />
-            Style Direct Gen
+            风格直接融合生成
           </button>
         </nav>
 
         <div className="mt-10 flex flex-col gap-6">
-          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400">Settings</span>
+          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400">配置中心</span>
           
           <div className="flex flex-col gap-3">
             <label className="flex items-center gap-2 text-xs font-semibold text-neutral-600 dark:text-neutral-400">
               <Settings size={14} />
-              Resolution
+              画面分辨率
             </label>
             <div className="grid grid-cols-3 gap-2">
               {(['1k', '2k', '4k'] as Resolution[]).map(r => (
@@ -411,7 +411,7 @@ export default function App() {
           <div className="flex flex-col gap-3">
             <label className="flex items-center gap-2 text-xs font-semibold text-neutral-600 dark:text-neutral-400">
               <Maximize2 size={14} />
-              Aspect Ratio
+              画面比例
             </label>
             <div className="grid grid-cols-2 gap-2">
               {(['1:1', '3:4', '4:3', '16:9'] as AspectRatio[]).map(r => (
@@ -429,7 +429,7 @@ export default function App() {
           <div className="flex flex-col gap-3 overflow-hidden">
             <label className="flex items-center gap-2 text-xs font-semibold text-neutral-600 dark:text-neutral-400">
               <HistoryIcon size={14} />
-              History
+              生成历史
             </label>
             <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto pr-1 scrollbar-hide">
               {history.map((item) => (
@@ -443,7 +443,7 @@ export default function App() {
               ))}
               {history.length === 0 && (
                 <div className="col-span-3 flex aspect-[3/1] items-center justify-center rounded-lg border border-dashed border-neutral-300 text-[10px] text-neutral-400 dark:border-neutral-700">
-                  Empty
+                  暂无历史记录
                 </div>
               )}
             </div>
@@ -456,15 +456,15 @@ export default function App() {
                 {userData?.name?.[0] || 'U'}
              </div>
              <div className="flex flex-col">
-                <span className="text-xs font-bold truncate max-w-[120px]">{userData?.name || 'Standard Account'}</span>
+                <span className="text-xs font-bold truncate max-w-[120px]">{userData?.name || '标准账户'}</span>
                 <span className="text-[10px] text-neutral-500">
-                  {userData ? `${userData.integral} Integrals Available` : 'Free Tier'}
+                  {userData ? `${userData.integral} 积分可用` : '免费体验'}
                 </span>
              </div>
           </div>
           {toolData && (
             <div className="mt-2 text-[10px] text-center text-neutral-400">
-              Costs {toolData.integral} integrals per generation
+              每次生成将消耗 {toolData.integral} 积分
             </div>
           )}
         </div>
@@ -475,12 +475,12 @@ export default function App() {
         <div className="mx-auto max-w-5xl p-10">
           <div className="mb-12">
             <h2 className="text-3xl font-bold tracking-tight">
-              {mode === 'analysis' ? 'Analysis & Product Replacement' : 'Direct Style Generation'}
+              {mode === 'analysis' ? '构图分析与产品无缝融合替换' : '美妆视觉风格快速生成'}
             </h2>
             <p className="mt-2 text-neutral-500">
               {mode === 'analysis' 
-                ? 'Upload a reference composition and identify elements to keep while swapping your product.' 
-                : 'Choose a professional aesthetic style and generate a unique product scene instantly.'}
+                ? '上传一张参考构图图片，自动识别要保留的背景与环境元素，并把您的新产品无缝替换融合进去。' 
+                : '挑选精心设计的殿堂级美妆大片视觉风格，即刻为您上传的产品生成极富艺术感的展示背景。'}
             </p>
           </div>
 
@@ -493,7 +493,7 @@ export default function App() {
                   {mode === 'analysis' && (
                     <div className="flex flex-col gap-4">
                       <ImageUploader 
-                        label="Step 1: Reference Composition" 
+                        label="步骤 1：上传参考构图 (环境与光影参考)" 
                         onUpload={setRefImage} 
                         preview={refImage} 
                       />
@@ -503,13 +503,13 @@ export default function App() {
                         className="group flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 py-3 font-bold text-white transition-all hover:bg-neutral-800 disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-100"
                       >
                         {analyzing ? <Loader2 className="animate-spin" /> : <Sparkles size={18} />}
-                        {analyzing ? 'Analyzing...' : 'Analyze Scene Elements'}
+                        {analyzing ? '分析中...' : '深度分析画面视觉元素'}
                       </button>
                     </div>
                   )}
 
                   <ImageUploader 
-                    label={mode === 'analysis' ? "Step 2: Your Product Image" : "Featured Product Image"} 
+                    label={mode === 'analysis' ? "步骤 2：上传您的产品图" : "上传您的产品图"} 
                     onUpload={setProductImage} 
                     preview={productImage} 
                   />
@@ -519,12 +519,12 @@ export default function App() {
                 <div className="flex flex-1 flex-col gap-4">
                   {mode === 'analysis' ? (
                     <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-6 flex-1 min-h-[300px] dark:border-neutral-800 dark:bg-neutral-900/50">
-                      <h4 className="mb-4 text-xs font-bold uppercase tracking-widest text-neutral-400">Identified Elements</h4>
+                      <h4 className="mb-4 text-xs font-bold uppercase tracking-widest text-neutral-400">已识别出的画面元素</h4>
                       <div className="flex flex-wrap gap-2">
                         {mainSubject && (
                           <div className="flex items-center gap-2 rounded-full bg-neutral-900 px-4 py-1.5 text-sm font-bold text-white shadow-lg ring-2 ring-neutral-900 dark:bg-white dark:text-neutral-900 dark:ring-white">
                             <Sparkles size={14} className="text-amber-400" />
-                            Replace: {mainSubject}
+                            待替换产品主体: {mainSubject}
                             <button onClick={() => setMainSubject('')} className="text-white/50 hover:text-white dark:text-neutral-900/50 dark:hover:text-neutral-900">
                               <X size={14} />
                             </button>
@@ -541,7 +541,7 @@ export default function App() {
                         <div className="flex items-center gap-2 rounded-xl bg-white px-3 py-1.5 shadow-sm ring-1 ring-neutral-200 focus-within:ring-2 focus-within:ring-neutral-900 dark:bg-neutral-800 dark:ring-neutral-700 dark:focus-within:ring-white">
                           <input 
                             type="text" 
-                            placeholder="Add tag..."
+                            placeholder="手动添加标签..."
                             className="flex-1 bg-transparent border-none p-0 text-sm focus:ring-0"
                             value={newObject}
                             onChange={(e) => setNewObject(e.target.value)}
@@ -567,9 +567,9 @@ export default function App() {
                       </div>
                     </div>
                   ) : (
-                    <div className="flex flex-col gap-6 rounded-2xl border border-neutral-100 bg-neutral-50 p-6 dark:border-neutral-800 dark:bg-neutral-900/50">
+                    <div className="flex flex-col gap-6 rounded-2xl border border-neutral-100 bg-neutral-50 p-6 dark:border-neutral-805 bg-neutral-50 px-5 p-6 dark:border-neutral-800 dark:bg-neutral-900/50">
                       <div className="flex flex-col gap-4">
-                        <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Choose Aesthetic</span>
+                        <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">选择预设视觉风格</span>
                         <div className="grid grid-cols-1 gap-3">
                           {beautyStyles.map(s => (
                             <button
@@ -594,7 +594,7 @@ export default function App() {
                 className="group mt-4 flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-neutral-800 to-neutral-950 py-5 text-lg font-bold text-white shadow-xl transition-all hover:scale-[1.02] active:scale-95 disabled:scale-100 disabled:opacity-50 dark:from-neutral-200 dark:to-white dark:text-neutral-950"
               >
                 {generating ? <Loader2 className="animate-spin" /> : <Sparkles />}
-                {generating ? (mode === 'analysis' ? 'Generating Replacement...' : 'Crafting Your Image...') : (mode === 'analysis' ? 'Generate Ecommerce Image' : 'Generate Beauty Shot (1 Image)')}
+                {generating ? (mode === 'analysis' ? '正在智能生成替换后的大片...' : '正在融合绘制您的风格大片...') : (mode === 'analysis' ? '立即融合生成高奢电商大片' : '立即开始风格化写真生成 (单张)')}
               </button>
             </section>
           </div>
@@ -629,7 +629,7 @@ export default function App() {
                   className="flex items-center gap-2 rounded-full bg-white px-8 py-3 font-bold text-black shadow-xl transition-transform hover:scale-105 active:scale-95"
                 >
                   <Download size={20} />
-                  Download 4K Quality
+                  下载高清原图
                 </button>
                 <button 
                   onClick={() => {
@@ -640,7 +640,7 @@ export default function App() {
                   className="flex items-center gap-2 rounded-full bg-red-500/20 px-8 py-3 font-bold text-red-500 backdrop-blur-md transition-transform hover:scale-105 active:scale-95"
                 >
                   <Trash2 size={20} />
-                  Delete
+                  删除记录
                 </button>
               </div>
             </div>
