@@ -425,17 +425,6 @@ export default function App() {
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto bg-white dark:bg-neutral-950">
         <div className="mx-auto max-w-7xl px-12 py-10 lg:px-24">
-          <div className="mb-12">
-            <h2 className="text-3xl font-bold tracking-tight">
-              {mode === 'analysis' ? '构图分析与产品无缝融合替换' : '美妆视觉风格快速生成'}
-            </h2>
-            <p className="mt-2 text-neutral-500">
-              {mode === 'analysis' 
-                ? '上传一张参考构图图片，自动识别要保留的背景与环境元素，并把您的新产品无缝替换融合进去。' 
-                : '挑选精心设计的殿堂级美妆大片视觉风格，即刻为您上传的产品生成极富艺术感的展示背景。'}
-            </p>
-          </div>
-
           <div className="flex flex-col gap-12">
             {/* Control Panel */}
             <section className="flex flex-col gap-8 mx-auto w-full max-w-5xl">
