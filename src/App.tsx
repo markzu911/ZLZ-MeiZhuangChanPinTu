@@ -223,19 +223,19 @@ export default function App() {
     try {
       let prompt = '';
       if (mode === 'analysis') {
-        prompt = `Professional e-commerce beauty product replacement task.
+        prompt = `Professional e-commerce beauty product replacement task with advanced 3D shading, material texturing, and realistic light integration.
         REFERENCE SCENE: A scene containing ${objects.join(', ')} and a ${mainSubject}.
-        TARGET PRODUCT: The product in the second uploaded product image.
+        TARGET PRODUCT: The product from the second uploaded product image.
         
-        GOAL: Replace the ${mainSubject} in the reference scene with the TARGET PRODUCT.
+        GOAL: Replace the ${mainSubject} in the reference scene with the TARGET PRODUCT, perfectly embedding it into the environment with high-contrast realistic lighting and physical materiality.
         
         CORE INSTRUCTIONS:
-        1. Natural Interaction: If there is a model, keep their identity and expression identical, but adjust the hand position or finger grip slightly to hold the TARGET PRODUCT naturally. The fingers MUST interact with the product naturally and realistically, without looking pasted on.
-        2. Product Fidelity: The TARGET PRODUCT must be rendered with extreme high fidelity, maintaining its original shape, labeling, text, and proportions exactly as shown in the product image. Avoid any distortion.
-        3. Perfect Lighting & Atmosphere Fusion: The generated image MUST strictly match the lighting direction, highlights, shadow depth, color temperature, and atmospheric mood of the REFERENCE SCENE. The TARGET PRODUCT and the model's hand/face MUST have perfectly fused lighting. It must look like the product was truly photographed in that exact studio setup, inheriting all reflections, environmental spill light, and casting soft, accurate contact shadows.
-        4. Seamless Integration: Ensure the contact points between the product and environment (or hands) look extremely realistic with natural contact shadows and physically accurate depth.
-        5. Consistency: Maintain the exact aesthetic, background, color palette, and other objects from the REFERENCE SCENE: ${objects.join(', ')}.
-        6. Quality: High-end commercial cosmetic photography, professional studio retouching.`;
+        1. Beautiful Natural Interaction & Grip: If there is a model, keep their exact identity, skin texture, and expression identical. The model's fingers MUST wrap around, hold, or touch the TARGET PRODUCT with anatomically perfect contact points. Let the fingertips and palms cast natural touch occlusion (soft, dark contact shadows) onto the product, and let the product cast physically accurate depth shadows back onto the skin. The contact must look completely real, organic, and integrated, never pasted.
+        2. Flexible Dimensional Product Fidelity: Preserve the target product's branding elements, logo, lines of text, and overall design layout with high-end premium fidelity. However, do NOT treat the product as a flat sticker. The product MUST be rendered as a fully 3D volumetric object with a curved cylindrical or solid shape. Its surface materials (such as smooth polished glass, glossy heavy glass, metallic droppers, matte caps, or labels) must bend and warp reflections naturally.
+        3. Dramatic Lighting Fusion & Chiaroscuro matching: The TARGET PRODUCT must dynamically react with strong shadows and gorgeous specular highlights matching the exact lighting direction, shadow hardness, color temperature (e.g., warm golden or cool studio light), and intensity of the reference scene. The product surface MUST show glossy reflections of the dark background and nearby highlights. Shadows on the unlit side of the product must fade deep into matching dark values to prevent a "flat pasted" look.
+        4. Advanced Surface Shading & Ambient Reflection: Inherit ambient light and subtle color spills from the model's hand and face. The materials (glass bottle, glossy liquid, metal ring) must show high-end reflections and refractions with physically accurate light falloff, giving it immense depth, premium texture weight, and realism.
+        5. Perfect Contact Shadows: Generate detailed, tight soft ambient occlusion at all physical boundaries where the product meets hands, skin, or supporting surfaces, seamlessly merging them into a single coherent photograph.
+        6. Style & Retouch Alignment: Maintain the exact high-fashion commercial retouching, background details, premium ambiance, color palette, and surrounding environment: ${objects.join(', ')}.`;
       } else {
         const style = beautyStyles.find(s => s.name === selectedStyle);
         prompt = style?.prompt || selectedStyle;
@@ -243,7 +243,7 @@ export default function App() {
           prompt += ` Extra scene elements to include: ${styleObjects.join(', ')}.`;
         }
         if (productImage) {
-          prompt += " IMPORTANT: The generated image MUST feature the model naturally holding the product from the uploaded product image. Ensure the hand position, grip, and finger placement are incredibly realistic and anatomically correct. The product MUST maintain absolute fidelity to its original design. It must perfectly inherit the scene's lighting, highlights, and cast soft contact shadows on the model's skin and environment. The lighting on the product and the model must be perfectly fused.";
+          prompt += " IMPORTANT: The generated image MUST feature the model naturally holding the product from the uploaded product image. Ensure the hand position, grip, and finger placement are incredibly realistic and anatomically correct. The fingers must cast soft, realistic contact shadows onto the product. The product MUST be rendered as a textured, volumetric 3D object (not a flat image) that reacts dynamically to the scene's high-contrast lighting: it should have dramatic specular highlights, deep matching shadows, and glossy glass or metallic reflections that align perfectly with the light source. The lighting on the product and the model must be perfectly fused and integrated with high-end commercial retouching quality, eliminating any pasted or artificial look.";
         }
       }
 
